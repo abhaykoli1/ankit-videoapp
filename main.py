@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 
 from app.core.database import connect_db, close_db
-from app.routers import auth, hosts, wallet, calls, gifts, chat, admin, levels
+from app.routers import auth, hosts, upid_module, wallet, calls, gifts, chat, admin, levels
 
 # Create upload directories
 for dir_path in [
@@ -69,6 +69,7 @@ app.include_router(gifts.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 app.include_router(levels.router, prefix="/api/v1")
+app.include_router(upid_module.router, prefix="/api/v1")
 
 @app.get("/", response_class=HTMLResponse)
 async def root():

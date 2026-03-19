@@ -346,6 +346,38 @@
         .xp-bar { height: 8px; background: var(--dark3); border-radius: 4px; overflow: hidden; margin-top: 4px; }
         .xp-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.5s; }
 
+        /* UPID specific styles */
+        .upid-display-box {
+            background: var(--dark3); border: 2px dashed var(--border);
+            border-radius: 14px; padding: 24px; text-align: center;
+            margin-bottom: 20px; transition: border-color 0.3s;
+        }
+        .upid-display-box.has-upid { border-color: var(--success); border-style: solid; }
+        .upid-display-box .upid-value {
+            font-size: 22px; font-weight: 800; letter-spacing: 2px;
+            color: var(--warning); margin: 12px 0 6px;
+            font-family: monospace;
+        }
+        .upid-display-box .upid-label {
+            font-size: 11px; color: var(--text-muted); text-transform: uppercase;
+            letter-spacing: 1px; font-weight: 700;
+        }
+        .upid-status-dot {
+            display: inline-block; width: 8px; height: 8px;
+            border-radius: 50%; margin-right: 6px; vertical-align: middle;
+        }
+        .upid-status-dot.active { background: var(--success); box-shadow: 0 0 6px var(--success); }
+        .upid-status-dot.inactive { background: var(--text-muted); }
+        .upid-actions { display: flex; gap: 10px; margin-top: 14px; }
+        .upid-info-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .upid-info-row:last-child { border-bottom: none; }
+        .upid-info-row .label { color: var(--text-muted); font-weight: 600; }
+        .upid-info-row .value { font-weight: 700; }
+
         /* RESPONSIVE */
         @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 768px) {
@@ -419,6 +451,9 @@
                     <div class="nav-section-title">Finance</div>
                     <div class="nav-item" onclick="showPage('wallet')">
                         <i class="fas fa-wallet"></i> Wallet & Payments
+                    </div>
+                    <div class="nav-item" onclick="showPage('upid')">
+                        <i class="fas fa-qrcode"></i> UPI / UPID
                     </div>
                     <div class="nav-item" onclick="showPage('gifts')">
                         <i class="fas fa-gift"></i> Gifts
@@ -631,6 +666,104 @@
                         </table>
                     </div>
                     <div style="padding:16px;" id="txnsPagination"></div>
+                </div>
+            </div>
+
+            <!-- ============ UPID ============ -->
+            <div class="page" id="page-upid">
+                <div class="grid-2">
+                    <!-- Current UPID Status -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">📟 Current UPID</span>
+                            <span id="upidStatusBadge" class="badge badge-warning">Loading...</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="upid-display-box" id="upidDisplayBox">
+                                <div style="font-size:40px;margin-bottom:8px;">🏦</div>
+                                <div class="upid-label">UPI Payment ID</div>
+                                <div class="upid-value" id="upidCurrentValue">—</div>
+                                <div id="upidMeta" style="font-size:12px;color:var(--text-muted);"></div>
+                            </div>
+
+                            <div id="upidInfoRows"></div>
+
+                            <div class="upid-actions">
+                                <button class="btn btn-outline" style="flex:1;" onclick="copyText(document.getElementById('upidCurrentValue').textContent)" id="upidCopyBtn" disabled>
+                                    <i class="fas fa-copy"></i> Copy UPID
+                                </button>
+                                <button class="btn btn-primary" style="flex:1;" onclick="openUpidModal('update')" id="upidEditBtn" disabled>
+                                    <i class="fas fa-edit"></i> Update UPID
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add / Set UPID -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">➕ Set New UPID</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="background:var(--dark3);border-radius:12px;padding:16px;margin-bottom:20px;border-left:3px solid var(--accent);">
+                                <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;">
+                                    <i class="fas fa-info-circle"></i> What is UPID?
+                                </div>
+                                <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+                                    UPID (UPI ID) is used to receive payments from users when they recharge coins. 
+                                    Only one UPID can be active at a time. Use "Update" to change existing UPID.
+                                </div>
+                            </div>
+
+                            <div class="form-field">
+                                <label>UPI ID / UPID</label>
+                                <input type="text" id="newUpidInput" placeholder="e.g. business@paytm or 9876543210@upi"
+                                    style="font-family:monospace;font-size:15px;letter-spacing:0.5px;">
+                            </div>
+                            <div style="font-size:12px;color:var(--text-muted);margin-top:-10px;margin-bottom:16px;">
+                                Format: username@bank or mobilenumber@upi
+                            </div>
+
+                            <div id="upidFormBtns">
+                                <button class="btn btn-success" style="width:100%;" id="addUpidBtn" onclick="addUpid()">
+                                    <i class="fas fa-plus-circle"></i> Create UPID
+                                </button>
+                            </div>
+
+                            <div id="upidAlert" style="margin-top:14px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- How it works -->
+                <div class="card" style="margin-top:4px;">
+                    <div class="card-header">
+                        <span class="card-title">📖 How UPID Works</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
+                            <div style="background:var(--dark3);border-radius:12px;padding:16px;text-align:center;">
+                                <div style="font-size:28px;margin-bottom:8px;">1️⃣</div>
+                                <div style="font-weight:700;font-size:13px;margin-bottom:4px;">Set Your UPID</div>
+                                <div style="font-size:12px;color:var(--text-muted);">Add your UPI ID from this panel. Only one can be active.</div>
+                            </div>
+                            <div style="background:var(--dark3);border-radius:12px;padding:16px;text-align:center;">
+                                <div style="font-size:28px;margin-bottom:8px;">2️⃣</div>
+                                <div style="font-weight:700;font-size:13px;margin-bottom:4px;">User Recharges</div>
+                                <div style="font-size:12px;color:var(--text-muted);">App shows your UPID to users during coin recharge flow.</div>
+                            </div>
+                            <div style="background:var(--dark3);border-radius:12px;padding:16px;text-align:center;">
+                                <div style="font-size:28px;margin-bottom:8px;">3️⃣</div>
+                                <div style="font-weight:700;font-size:13px;margin-bottom:4px;">Payment Received</div>
+                                <div style="font-size:12px;color:var(--text-muted);">User pays via any UPI app. Admin verifies and credits coins.</div>
+                            </div>
+                            <div style="background:var(--dark3);border-radius:12px;padding:16px;text-align:center;">
+                                <div style="font-size:28px;margin-bottom:8px;">🔄</div>
+                                <div style="font-weight:700;font-size:13px;margin-bottom:4px;">Update Anytime</div>
+                                <div style="font-size:12px;color:var(--text-muted);">Change UPID at any time. Old one is immediately replaced.</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -864,6 +997,30 @@
     </div>
 </div>
 
+<!-- MODAL: Update UPID -->
+<div class="modal-overlay" id="updateUpidModal">
+    <div class="modal" style="width:420px;">
+        <div class="modal-header">
+            <div class="modal-title">✏️ Update UPID</div>
+            <button class="modal-close" onclick="closeModal('updateUpidModal')">✕</button>
+        </div>
+        <div class="form-field">
+            <label>New UPI ID / UPID</label>
+            <input type="text" id="updateUpidInput" placeholder="e.g. business@paytm"
+                style="font-family:monospace;font-size:15px;letter-spacing:0.5px;">
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:-10px;margin-bottom:16px;">
+            This will replace the existing UPID immediately.
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('updateUpidModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="updateUpid()">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -937,6 +1094,7 @@ const pageTitles = {
     hosts: ['Host Users', 'Manage hosts shown in the discover feed'],
     calls: ['Call Logs', 'All video call records'],
     wallet: ['Wallet & Payments', 'Transactions and coin management'],
+    upid: ['UPI / UPID Settings', 'Manage your UPI payment ID for coin recharges'],
     gifts: ['Gifts', 'Manage gift catalog and statistics'],
     analytics: ['Analytics', 'Platform growth and revenue trends'],
     notifications: ['Notifications', 'Send push notifications to users']
@@ -954,8 +1112,8 @@ function showPage(page) {
     
     const loaders = {
         users: loadUsers, hosts: loadHosts, calls: loadCalls,
-        wallet: loadWallet, gifts: loadGifts, analytics: loadAnalytics,
-        notifications: loadNotifications
+        wallet: loadWallet, upid: loadUpid, gifts: loadGifts,
+        analytics: loadAnalytics, notifications: loadNotifications
     };
     if (loaders[page]) loaders[page]();
 }
@@ -963,7 +1121,7 @@ function showPage(page) {
 function refreshCurrentPage() {
     const loaders = {
         dashboard: loadDashboard, users: loadUsers, hosts: loadHosts,
-        calls: loadCalls, wallet: loadWallet, gifts: loadGifts,
+        calls: loadCalls, wallet: loadWallet, upid: loadUpid, gifts: loadGifts,
         analytics: loadAnalytics, notifications: loadNotifications
     };
     if (loaders[currentPage]) loaders[currentPage]();
@@ -1023,7 +1181,6 @@ async function loadDashboard() {
         </div>
     `;
 
-    // Top users by balance
     document.getElementById('topUsers').innerHTML = `
         <div class="table-wrap">
         <table>
@@ -1041,7 +1198,6 @@ async function loadDashboard() {
         </div>
     `;
 
-    // Recent users
     const uData = await api('/api/v1/admin/users?limit=5');
     if (uData) {
         document.getElementById('recentUsers').innerHTML = uData.users.slice(0,5).map(u => `
@@ -1058,8 +1214,6 @@ async function loadDashboard() {
         `).join('');
     }
 
-    // Recent calls
-    const cData = await api('/api/v1/admin/all?limit=5');
     document.getElementById('recentCalls').innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Load call logs from Calls section</div>';
 }
 
@@ -1324,7 +1478,6 @@ async function loadWallet() {
         </div>
     `;
     
-    // Packages display
     const pkgData = await api('/api/v1/wallet/packages');
     if (pkgData) {
         document.getElementById('packagesDisplay').innerHTML = pkgData.packages.map(p => `
@@ -1365,6 +1518,136 @@ async function creditUser() {
         document.getElementById('creditAmount').value = '';
     } else {
         showToast(data?.detail || 'Error', 'error');
+    }
+}
+
+// ===================== UPID =====================
+async function loadUpid() {
+    // Reset UI
+    document.getElementById('upidCurrentValue').textContent = '—';
+    document.getElementById('upidStatusBadge').textContent = 'Loading...';
+    document.getElementById('upidStatusBadge').className = 'badge badge-warning';
+    document.getElementById('upidInfoRows').innerHTML = '';
+    document.getElementById('upidAlert').innerHTML = '';
+
+    try {
+        const data = await api('/api/v1/upid/get');
+
+        if (data && data.success) {
+            // UPID exists
+            const upid = data.upid;
+            document.getElementById('upidCurrentValue').textContent = upid;
+            document.getElementById('upidDisplayBox').classList.add('has-upid');
+            document.getElementById('upidStatusBadge').textContent = '✅ Active';
+            document.getElementById('upidStatusBadge').className = 'badge badge-success';
+            document.getElementById('upidMeta').textContent = 'Live — users can send payments to this ID';
+
+            document.getElementById('upidInfoRows').innerHTML = `
+                <div class="upid-info-row">
+                    <span class="label"><i class="fas fa-id-card"></i> UPID</span>
+                    <span class="value" style="font-family:monospace;color:var(--warning);">${upid}</span>
+                </div>
+                <div class="upid-info-row">
+                    <span class="label"><i class="fas fa-circle"></i> Status</span>
+                    <span class="value">
+                        <span class="upid-status-dot active"></span>Active & Accepting Payments
+                    </span>
+                </div>
+            `;
+
+            document.getElementById('upidCopyBtn').disabled = false;
+            document.getElementById('upidEditBtn').disabled = false;
+
+            // Show update form instead of create
+            document.getElementById('newUpidInput').value = upid;
+            document.getElementById('addUpidBtn').innerHTML = '<i class="fas fa-sync-alt"></i> Already exists — use Update button';
+            document.getElementById('addUpidBtn').disabled = true;
+            document.getElementById('addUpidBtn').style.opacity = '0.5';
+
+        } else {
+            // No UPID set
+            setUpidEmpty();
+        }
+    } catch(e) {
+        setUpidEmpty();
+    }
+}
+
+function setUpidEmpty() {
+    document.getElementById('upidDisplayBox').classList.remove('has-upid');
+    document.getElementById('upidStatusBadge').textContent = '⚠️ Not Set';
+    document.getElementById('upidStatusBadge').className = 'badge badge-danger';
+    document.getElementById('upidMeta').textContent = 'No UPID configured — users cannot pay via UPI';
+
+    document.getElementById('upidInfoRows').innerHTML = `
+        <div class="upid-info-row">
+            <span class="label">Status</span>
+            <span class="value">
+                <span class="upid-status-dot inactive"></span>Not configured
+            </span>
+        </div>
+    `;
+
+    document.getElementById('upidCopyBtn').disabled = true;
+    document.getElementById('upidEditBtn').disabled = true;
+    document.getElementById('addUpidBtn').disabled = false;
+    document.getElementById('addUpidBtn').style.opacity = '1';
+    document.getElementById('addUpidBtn').innerHTML = '<i class="fas fa-plus-circle"></i> Create UPID';
+}
+
+async function addUpid() {
+    const upid = document.getElementById('newUpidInput').value.trim();
+    if (!upid) { showToast('Enter a valid UPID', 'error'); return; }
+
+    const data = await api('/api/v1/upid/add', 'POST', upid);  // FastAPI Body(...) — send raw string
+    // Note: FastAPI Body(...) with string needs JSON string
+    const res = await fetch(`${API}/api/v1/upid/add`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(upid)
+    });
+    const result = await res.json();
+
+    if (result?.success) {
+        showToast('UPID created successfully!', 'success');
+        document.getElementById('upidAlert').innerHTML = `<div class="alert alert-success"><i class="fas fa-check-circle"></i> UPID set to: <strong>${upid}</strong></div>`;
+        loadUpid();
+    } else {
+        const msg = result?.detail || 'Error creating UPID';
+        showToast(msg, 'error');
+        document.getElementById('upidAlert').innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${msg}</div>`;
+    }
+}
+
+function openUpidModal(mode) {
+    const current = document.getElementById('upidCurrentValue').textContent;
+    document.getElementById('updateUpidInput').value = current === '—' ? '' : current;
+    openModal('updateUpidModal');
+}
+
+async function updateUpid() {
+    const upid = document.getElementById('updateUpidInput').value.trim();
+    if (!upid) { showToast('Enter a valid UPID', 'error'); return; }
+
+    const res = await fetch(`${API}/api/v1/upid/update`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(upid)
+    });
+    const result = await res.json();
+
+    if (result?.success) {
+        showToast('UPID updated!', 'success');
+        closeModal('updateUpidModal');
+        loadUpid();
+    } else {
+        showToast(result?.detail || 'Error updating UPID', 'error');
     }
 }
 
@@ -1575,7 +1858,7 @@ function showToast(msg, type='info') {
 }
 
 function copyText(text) {
-    navigator.clipboard.writeText(text).then(() => showToast('Copied: ' + text.slice(-8), 'info'));
+    navigator.clipboard.writeText(text).then(() => showToast('Copied: ' + text.slice(-12), 'info'));
 }
 
 let debounceTimers = {};
